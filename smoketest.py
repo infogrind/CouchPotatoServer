@@ -8,8 +8,9 @@ fundamental problem.
 """
 
 PROGRAM = "./CouchPotato.py"
-ARGS = "--debug --console_log --data_dir ./data".split()
-WARMUP_TIME = 10
+DEFAULT_ARGS = "--debug --quiet".split()
+WARMUP_TIME_SEC = 5
+TEST_SETTINGS = "testdata/settings.conf"
 
 import os
 import shutil
@@ -20,28 +21,29 @@ import tempfile
 import time
 
 
-def main(cwd):
+def main():
     """
     Main function
     """
     try:
         tmpdirname = tempfile.mkdtemp()
         print "Temporary directory is {}".format(tmpdirname)
+        shutil.copyfile(TEST_SETTINGS, tmpdirname + "/settings.conf")
 
-        print "Starting CouchPotato as a child process."
-        child = subprocess.Popen([PROGRAM] + ARGS)
-        print "Child process PID is {}.".format(child.pid)
-
-        print "Giving the application some time to set itself up."
-        time.sleep(WARMUP_TIME)
-
-        print "Sending SIGTERM to process {}.".format(child.pid)
+        # Use temporary directory as data directory; it will be deleted again
+        # below.
+        args = DEFAULT_ARGS + "--data_dir {}".format(tmpdirname).split()
+        print "Running application in subprocess"
+        child = subprocess.Popen([PROGRAM] + args)
+        print "Subrocess is running. Waiting {} seconds to warm up.".format(
+                WARMUP_TIME_SEC)
+        time.sleep(WARMUP_TIME_SEC)
         child.terminate()
 
-        print "Waiting for it to shut down"
+        # TODO(marius): Should use a timeout
+        print "Sent SIGTERM, waiting for child process {} to terminate.".format(
+                child.pid)
         child.wait()
-
-        print "All done"
 
     finally:
         try:
@@ -51,6 +53,4 @@ def main(cwd):
 
 
 if __name__ == "__main__":
-    print __file__
-    print sys.argv[0]
-    main(os.path.dirname(__file__))
+    main()
