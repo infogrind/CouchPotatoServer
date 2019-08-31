@@ -11,10 +11,13 @@ PROGRAM = "./CouchPotato.py"
 DEFAULT_ARGS = "--debug --quiet".split()
 WARMUP_TIME_SEC = 5
 TEST_SETTINGS = "testdata/settings.conf"
+CP_IP = "127.0.0.1"
+CP_PORT = 5050
 
 import os
 import shutil
 import signal
+import socket
 import sys
 import subprocess
 import tempfile
@@ -59,6 +62,29 @@ class TestContext:
                         self.tmpdirname)
 
 
+def isPortOpen(ip, port):
+    """
+    Verifies if there is an open TCP socket at the given IP address and port.
+    """
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(1)
+        s.connect((ip, port))
+        print "Socket connected at {}:{}".format(ip, port)
+        return True
+    except:
+        print "Error connecting to {}:{}: {}".format(ip, port,
+            sys.exc_info()[0])
+        time.sleep(1)
+        return False
+    finally:
+        try:
+            s.shutdown(socket.SHUT_RDWR)
+            s.close()
+        except:
+            # Nothing to do, if we couldn't shut down, so be it. (This happens
+            # normally if we couldn't connect to the socket in the first place.)
+            pass
 
 
 def main():
@@ -66,7 +92,9 @@ def main():
     Main function
     """
     with TestContext():
-        pass
+        print "Testing if TCP connection can be made at {}:{}".format(CP_IP,
+            CP_PORT)
+        assert(isPortOpen(CP_IP, CP_PORT))
 
 
 if __name__ == "__main__":
